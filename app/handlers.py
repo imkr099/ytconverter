@@ -61,7 +61,7 @@ def download_youtube_video(url):
         return video_file.replace('.webm', '.mp4').replace('.m4a', '.mp4')
 
 
-@router.message(F.text.startswith('https://www.youtube.com/'))
+@router.message(F.text.contains('youtu'))
 async def handle_youtube_link(message: Message, state: FSMContext):
     url = message.text
     await state.set_state(UserStates.waiting_for_format)
