@@ -5,3 +5,4 @@ __pycache__
 app/__pycache__
 app/database/__pycahce__
 downloads
+db.sqlite3
