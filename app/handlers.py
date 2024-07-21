@@ -1,10 +1,11 @@
 import os
 import random
 import re
+import subprocess
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.types import FSInputFile
 from yt_dlp import YoutubeDL
 from aiogram.fsm.state import State, StatesGroup
@@ -49,17 +50,34 @@ def download_youtube_audio(url):
         return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
 
 
-def download_youtube_video(url):
+def download_youtube_video(url: str) -> str:
     ydl_opts = {
         'format': 'bestvideo+bestaudio/best',
-        'merge_output_format': 'mp4',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
     }
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
         video_file = ydl.prepare_filename(info_dict)
-        return video_file.replace('.webm', '.mp4').replace('.m4a', '.mp4')
+
+    output_file = video_file.replace('.webm', '_h264_aac.mp4').replace('.m4a', '_h264_aac.mp4')
+
+    if not os.path.isfile(video_file):
+        raise FileNotFoundError(f"Input file not found: {video_file}")
+
+    command = [
+        'ffmpeg',
+        '-i', video_file,
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        '-strict', 'experimental',
+        output_file
+    ]
+    subprocess.run(command, check=True)
+
+    os.remove(video_file)
+
+    return output_file
 
 
 def clean_youtube_url(url: str) -> str:
