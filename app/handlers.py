@@ -1,5 +1,6 @@
 import os
 import random
+import re
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
@@ -61,13 +62,20 @@ def download_youtube_video(url):
         return video_file.replace('.webm', '.mp4').replace('.m4a', '.mp4')
 
 
+def clean_youtube_url(url: str) -> str:
+    match = re.match(r'(https://www\.youtube\.com/watch\?v=[\w-]+)', url)
+    if match:
+        return match.group(1)
+    return url
+
+
 @router.message(F.text.contains('youtu'))
 async def handle_youtube_link(message: Message, state: FSMContext):
     url = message.text
+    clean_url = clean_youtube_url(url)
     await state.set_state(UserStates.waiting_for_format)
-    await state.update_data(url=url)
-    reply_message = await message.reply("Select the format you want to convert the video to.",
-                                        reply_markup=await choice_button())
+    await state.update_data(url=clean_url)
+    reply_message = await message.reply("Select the format you want to convert the video to.", reply_markup=await choice_button())
     await state.update_data(reply_message_id=reply_message.message_id)
 
 
