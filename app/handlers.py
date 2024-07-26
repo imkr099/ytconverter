@@ -77,11 +77,10 @@ def download_youtube_video_sync(url, quality) -> str:
         try:
             info_dict = ydl.extract_info(url, download=True)
             video_file = ydl.prepare_filename(info_dict)
-            duration = info_dict.get('duration', 0)  # duration in seconds
-            return video_file, duration
+            return video_file
         except Exception as e:
             print(f"Error downloading video: {e}")
-            return None, 0
+            return None
 
 
 async def download_youtube_audio(url):
@@ -138,6 +137,7 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
         except Exception as e:
             print(f"Error deleting message: {e}")
+    audio_file_path = None
     try:
         audio_file_path = await download_youtube_audio(url)
         audio_file = FSInputFile(audio_file_path)
@@ -152,6 +152,7 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
             )
     except Exception as e:
         await callback.message.answer(f"Error: Failed to convert audio! {str(e)}")
+        os.remove(audio_file_path)
 
 
 @router.callback_query(F.data.in_(['240p', '360p', '480p', '720p', '1080p']))
@@ -175,11 +176,13 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
         except Exception as e:
             print(f"Error deleting message: {e}")
+    video_file_path = None
     try:
-        video_file_path, duration = await download_youtube_video(url, quality)
+        video_file_path = await download_youtube_video(url, quality)
         if video_file_path:
             video_file = FSInputFile(video_file_path)
-            if duration <= 300:  # 300 seconds == 5 minutes
+            file_size = os.path.getsize(video_file_path)
+            if file_size <= 44 * 1024 * 1024:  # 50 MB
                 await callback.message.answer_video(video_file)
             else:
                 await callback.message.answer_document(video_file)
@@ -193,8 +196,10 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
                 )
         else:
             await callback.message.answer("Error: Failed to download video.")
+            os.remove(video_file_path)
     except Exception as e:
-        await callback.message.answer(f"Error: Failed to download video! {str(e)}")
+        await callback.message.answer(f"Error: Failed to download video! {str(e)}\nFile is more than 50mb!")
+        os.remove(video_file_path)
 
 
 @router.callback_query(F.data == 'back')
