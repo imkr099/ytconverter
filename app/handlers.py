@@ -77,10 +77,11 @@ def download_youtube_video_sync(url, quality) -> str:
         try:
             info_dict = ydl.extract_info(url, download=True)
             video_file = ydl.prepare_filename(info_dict)
-            return video_file
+            duration = info_dict.get('duration', 0)  # duration in seconds
+            return video_file, duration
         except Exception as e:
             print(f"Error downloading video: {e}")
-            return None
+            return None, 0
 
 
 async def download_youtube_audio(url):
@@ -175,10 +176,13 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
         except Exception as e:
             print(f"Error deleting message: {e}")
     try:
-        video_file_path = await download_youtube_video(url, quality)
+        video_file_path, duration = await download_youtube_video(url, quality)
         if video_file_path:
             video_file = FSInputFile(video_file_path)
-            await callback.message.answer_video(video_file)
+            if duration <= 300:  # 300 seconds == 5 minutes
+                await callback.message.answer_video(video_file)
+            else:
+                await callback.message.answer_document(video_file)
             os.remove(video_file_path)
             con_answer_id = (await state.get_data()).get('con_answer_id')
             if con_answer_id:
