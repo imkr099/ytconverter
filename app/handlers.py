@@ -60,12 +60,13 @@ def download_youtube_audio_sync(url):
 
 def download_youtube_video_sync(url, quality) -> str:
     quality_formats = {
-        '240p': 'bestvideo[height<=240][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
-        '360p': 'bestvideo[height<=360][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
-        '480p': 'bestvideo[height<=480][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
-        '720p': 'bestvideo[height<=720][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
-        '1080p': 'bestvideo[height<=1080][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
+        '240p': 'bestvideo[height<=240]+bestaudio/best',
+        '360p': 'bestvideo[height<=360]+bestaudio/best',
+        '480p': 'bestvideo[height<=480]+bestaudio/best',
+        '720p': 'bestvideo[height<=720]+bestaudio/best',
+        '1080p': 'bestvideo[height<=1080]+bestaudio/best',
     }
+    #'1080p': 'bestvideo[height<=1080][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
     ydl_opts = {
         'format': quality_formats.get(quality, 'bestvideo+bestaudio/best'),
         'merge_output_format': 'mp4',
