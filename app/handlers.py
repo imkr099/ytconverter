@@ -1,20 +1,18 @@
 import os
 import random
-import re
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import FSInputFile
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-
-from yt_dlp import YoutubeDL
+from aiogram.types.dice import DiceEmoji
 
 from app.database import requests as rq
-from app.keyboards import choice_button, quality_button, back_button, create_quality_buttons, get_available_qualities
+from app.functions import clean_youtube_url, get_available_qualities, download_youtube_audio, download_youtube_video
+from app.keyboards import choice_button, create_quality_buttons
+
 
 router = Router()
 
@@ -36,59 +34,18 @@ async def start(message: Message):
     await message.answer('Welcome!\nSend me the link from YouTube and I will convert it to \nAudio or Video♻️')
 
 
-async def run_in_executor(func, *args):
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as pool:
-        return await loop.run_in_executor(pool, func, *args)
-
-
-def download_youtube_audio_sync(url):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-        'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'quiet': True,
-    }
-    with YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        audio_file = ydl.prepare_filename(info_dict)
-        return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
-
-
-def download_youtube_video_sync(url, quality) -> str:
-    ydl_opts = {
-        'format': f'bestvideo[height<={quality[:-1]}]+bestaudio/best',
-        'merge_output_format': 'mp4',
-        'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'quiet': True,
-    }
-    with YoutubeDL(ydl_opts) as ydl:
-        try:
-            info_dict = ydl.extract_info(url, download=True)
-            video_file = ydl.prepare_filename(info_dict)
-            return video_file
-        except Exception as e:
-            print(f"Error downloading video: {e}")
-            return None
-
-
-async def download_youtube_audio(url):
-    return await run_in_executor(download_youtube_audio_sync, url)
-
-
-async def download_youtube_video(url, quality):
-    return await run_in_executor(download_youtube_video_sync, url, quality)
-
-
-def clean_youtube_url(url: str) -> str:
-    match = re.match(r'(https://www\.youtube\.com/watch\?v=[\w-]+)', url)
-    if match:
-        return match.group(1)
-    return url
+@router.message(Command('dice'))
+async def send_dice(message: Message):
+    dice_emojis = [
+        DiceEmoji.DICE,
+        DiceEmoji.DART,
+        DiceEmoji.BASKETBALL,
+        DiceEmoji.FOOTBALL,
+        DiceEmoji.SLOT_MACHINE,
+        DiceEmoji.BOWLING
+    ]
+    random_dice = random.choice(dice_emojis)
+    await message.answer_dice(emoji=random_dice)
 
 
 @router.message(F.text.contains('youtu'))
@@ -178,7 +135,7 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
         if video_file_path:
             video_file = FSInputFile(video_file_path)
             file_size = os.path.getsize(video_file_path)
-            if file_size <= 44 * 1024 * 1024:  # 50 MB
+            if file_size <= 44 * 1024 * 1024:  # 44 MB
                 await callback.message.answer_video(video_file)
             else:
                 await callback.message.answer_document(video_file)
