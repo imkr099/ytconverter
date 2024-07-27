@@ -8,12 +8,13 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.types import FSInputFile
-from yt_dlp import YoutubeDL
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
+from yt_dlp import YoutubeDL
+
 from app.database import requests as rq
-from app.keyboards import choice_button, quality_button, back_button
+from app.keyboards import choice_button, quality_button, back_button, create_quality_buttons, get_available_qualities
 
 router = Router()
 
@@ -59,16 +60,8 @@ def download_youtube_audio_sync(url):
 
 
 def download_youtube_video_sync(url, quality) -> str:
-    quality_formats = {
-        '240p': 'bestvideo[height<=240]+bestaudio/best',
-        '360p': 'bestvideo[height<=360]+bestaudio/best',
-        '480p': 'bestvideo[height<=480]+bestaudio/best',
-        '720p': 'bestvideo[height<=720]+bestaudio/best',
-        '1080p': 'bestvideo[height<=1080]+bestaudio/best',
-    }
-    #'1080p': 'bestvideo[height<=1080][vcodec=avc1]+bestaudio[acodec=mp4a]/best',
     ydl_opts = {
-        'format': quality_formats.get(quality, 'bestvideo+bestaudio/best'),
+        'format': f'bestvideo[height<={quality[:-1]}]+bestaudio/best',
         'merge_output_format': 'mp4',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
@@ -116,7 +109,10 @@ async def process_format_callback(callback: CallbackQuery, state: FSMContext):
     await state.update_data(format_type=format_type)
 
     if format_type == 'mp4':
-        quality_buttons = await quality_button()
+        user_data = await state.get_data()
+        url = user_data.get('url')
+        qualities = await get_available_qualities(url)
+        quality_buttons = await create_quality_buttons(qualities)
         await state.set_state(UserStates.waiting_for_quality)
         await callback.message.edit_text("Select the video quality.", reply_markup=quality_buttons)
 
@@ -155,7 +151,7 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
         os.remove(audio_file_path)
 
 
-@router.callback_query(F.data.in_(['240p', '360p', '480p', '720p', '1080p']))
+@router.callback_query(F.data.regexp(r'\d+p'))
 async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
     quality = callback.data
     await callback.answer()
@@ -198,7 +194,7 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer("Error: Failed to download video.")
             os.remove(video_file_path)
     except Exception as e:
-        await callback.message.answer(f"Error: Failed to download video! {str(e)}\nFile is more than 50mb!")
+        await callback.message.answer(f"Error: Failed to download video! {str(e)}")
         os.remove(video_file_path)
 
 
