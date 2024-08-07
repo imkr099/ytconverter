@@ -170,7 +170,7 @@ async def spotify_downloader(message: Message):
         os.remove(audio_file_path)
         await con_answer.edit_text("✅")
     except Exception as e:
-        await message.answer(f"Error: Failed to download track! {str(e)}")
+        await message.answer(f"{str(e)}")
         if 'audio_file_path' in locals() and os.path.exists(audio_file_path):
             os.remove(audio_file_path)
 
