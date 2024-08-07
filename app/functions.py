@@ -1,7 +1,9 @@
 import re
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import os
 from yt_dlp import YoutubeDL
+import subprocess
 
 
 async def run_in_executor(func, *args):
@@ -66,3 +68,27 @@ async def get_available_qualities(url):
         formats = info_dict.get('formats', [])
         qualities = sorted(set([f.get('height') for f in formats if f.get('height') and f.get('height') >= 144]))
         return [f"{quality}p" for quality in qualities]
+
+
+def download_spotify_track_sync(url: str) -> str:
+    output_dir = 'downloads'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    command = ["spotdl", "download", url, "--output", output_dir]
+    try:
+        subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running spotdl: {e}")
+        raise Exception("Failed to download track.")
+
+    downloaded_files = [f for f in os.listdir(output_dir) if f.endswith('.mp3')]
+    if downloaded_files:
+        downloaded_file_path = os.path.join(output_dir, downloaded_files[0])
+        return downloaded_file_path
+    else:
+        raise Exception("Failed to download track.")
+
+
+async def download_spotify_track(url: str) -> str:
+    return await run_in_executor(download_spotify_track_sync, url)

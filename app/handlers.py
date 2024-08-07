@@ -10,7 +10,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types.dice import DiceEmoji
 
 from app.database import requests as rq
-from app.functions import clean_youtube_url, get_available_qualities, download_youtube_audio, download_youtube_video
+from app.functions import (clean_youtube_url, get_available_qualities, download_youtube_audio,
+                           download_youtube_video, download_spotify_track)
 from app.keyboards import choice_button, create_quality_buttons
 
 
@@ -153,6 +154,25 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         await callback.message.answer(f"Error: Failed to download video! {str(e)}")
         os.remove(video_file_path)
+
+
+@router.message(F.text.startswith("https://open.spotify.com/track/"))
+async def spotify_downloader(message: Message):
+    url = message.text
+    con_answer = await message.answer(text="Downloading track from Spotify, please wait...⏳")
+
+    try:
+        audio_file_path = await download_spotify_track(url)
+        if not os.path.exists(audio_file_path):
+            raise Exception(f"File {audio_file_path} does not exist.")
+        audio_file = FSInputFile(audio_file_path)
+        await message.answer_audio(audio_file)
+        os.remove(audio_file_path)
+        await con_answer.edit_text("✅")
+    except Exception as e:
+        await message.answer(f"Error: Failed to download track! {str(e)}")
+        if 'audio_file_path' in locals() and os.path.exists(audio_file_path):
+            os.remove(audio_file_path)
 
 
 @router.callback_query(F.data == 'back')
