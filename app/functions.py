@@ -22,6 +22,7 @@ def download_youtube_audio_sync(url):
         }],
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
+        'cookiefile': 'C:/tgprojects/ytconverter/www.youtube.com_cookies.txt',
     }
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
@@ -35,6 +36,7 @@ def download_youtube_video_sync(url, quality) -> str:
         'merge_output_format': 'mp4',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
+        'cookiefile': 'C:/tgprojects/ytconverter/www.youtube.com_cookies.txt',
     }
     with YoutubeDL(ydl_opts) as ydl:
         try:
@@ -62,7 +64,8 @@ def clean_youtube_url(url: str) -> str:
 
 
 async def get_available_qualities(url):
-    ydl_opts = {'quiet': True}
+    ydl_opts = {'quiet': True,
+                'cookiefile': 'C:/tgprojects/ytconverter/www.youtube.com_cookies.txt'}
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=False)
         formats = info_dict.get('formats', [])
@@ -70,25 +73,25 @@ async def get_available_qualities(url):
         return [f"{quality}p" for quality in qualities]
 
 
-# def download_spotify_track_sync(url: str) -> str:
-#     output_dir = 'downloads'
-#     if not os.path.exists(output_dir):
-#         os.makedirs(output_dir)
-#
-#     command = ["spotdl", "download", url, "--output", output_dir]
-#     try:
-#         subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
-#     except subprocess.CalledProcessError as e:
-#         print(f"Error occurred while running spotdl: {e}")
-#         raise Exception("Failed to download track.")
-#
-#     downloaded_files = [f for f in os.listdir(output_dir) if f.endswith('.mp3')]
-#     if downloaded_files:
-#         downloaded_file_path = os.path.join(output_dir, downloaded_files[0])
-#         return downloaded_file_path
-#     else:
-#         raise Exception("Failed to download track.")
-#
-#
-# async def download_spotify_track(url: str) -> str:
-#     return await run_in_executor(download_spotify_track_sync, url)
+def download_spotify_track_sync(url: str) -> str:
+    output_dir = 'downloads'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    command = ["spotdl", "download", url, "--output", output_dir]
+    try:
+        subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running spotdl: {e}")
+        raise Exception("Failed to download track.")
+
+    downloaded_files = [f for f in os.listdir(output_dir) if f.endswith('.mp3')]
+    if downloaded_files:
+        downloaded_file_path = os.path.join(output_dir, downloaded_files[0])
+        return downloaded_file_path
+    else:
+        raise Exception("Failed to download track.")
+
+
+async def download_spotify_track(url: str) -> str:
+    return await run_in_executor(download_spotify_track_sync, url)
