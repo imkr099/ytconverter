@@ -83,6 +83,8 @@ def download_spotify_track_sync(url: str) -> str:
         subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running spotdl: {e}")
+        print("Command output:", e.output)
+        print("Command error:", e.stderr)
         raise Exception("Failed to download track.")
 
     downloaded_files = [f for f in os.listdir(output_dir) if f.endswith('.mp3')]
