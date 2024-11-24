@@ -6,4 +6,6 @@ app/__pycache__
 app/database/__pycahce__
 downloads
 db.sqlite3
+your_database.db
 www.youtube.com_cookies.txt
+venv

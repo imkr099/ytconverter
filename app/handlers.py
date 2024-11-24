@@ -32,7 +32,7 @@ async def start(message: Message):
     await rq.set_user(message.from_user.id)
     random_emoji = random.choice(emojis)
     await message.answer(f'{random_emoji}')
-    await message.answer('Приветствую!\nПоделитесь сссылкой с YouTube и я конвертирую его в  \nАудио или Видео♻️')
+    await message.answer('Приветствую!\nПоделитесь сссылкой YouTube и я конвертирую его в  \nАудио или Видео♻️')
 
 
 @router.message(Command('dice'))
