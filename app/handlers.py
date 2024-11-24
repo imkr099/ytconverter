@@ -32,7 +32,7 @@ async def start(message: Message):
     await rq.set_user(message.from_user.id)
     random_emoji = random.choice(emojis)
     await message.answer(f'{random_emoji}')
-    await message.answer('Welcome!\nSend me the link from YouTube and I will convert it to \nAudio or Video♻️')
+    await message.answer('Приветствую!\nПоделитесь сссылкой с YouTube и я конвертирую его в  \nАудио или Видео♻️')
 
 
 @router.message(Command('dice'))
@@ -55,7 +55,7 @@ async def handle_youtube_link(message: Message, state: FSMContext):
     clean_url = clean_youtube_url(url)
     await state.set_state(UserStates.waiting_for_format)
     await state.update_data(url=clean_url)
-    reply_message = await message.reply("Select the format you want to convert the video to.",
+    reply_message = await message.reply("Выберите формат конвертации:",
                                         reply_markup=await choice_button())
     await state.update_data(reply_message_id=reply_message.message_id)
 
@@ -72,7 +72,7 @@ async def process_format_callback(callback: CallbackQuery, state: FSMContext):
         qualities = await get_available_qualities(url)
         quality_buttons = await create_quality_buttons(qualities)
         await state.set_state(UserStates.waiting_for_quality)
-        await callback.message.edit_text("Select the video quality.", reply_markup=quality_buttons)
+        await callback.message.edit_text("Выберите качество видео:", reply_markup=quality_buttons)
 
     elif format_type == 'mp3':
         user_data = await state.get_data()
@@ -81,7 +81,7 @@ async def process_format_callback(callback: CallbackQuery, state: FSMContext):
 
 
 async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url: str):
-    con_answer = await callback.message.answer(text="Converting video to MP3, please wait...⏳")
+    con_answer = await callback.message.answer(text="Конвертируем в MP3, пожалуйста подождите...⏳")
     await state.update_data(con_answer_id=con_answer.message_id)
     user_data = await state.get_data()
     reply_message_id = user_data.get('reply_message_id')
@@ -105,7 +105,7 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
                 message_id=con_answer_id
             )
     except Exception as e:
-        await callback.message.answer(f"Error: Failed to convert audio! {str(e)}")
+        await callback.message.answer(f"Ошибка: Не удалось конвертировать аудио! {str(e)}")
         os.remove(audio_file_path)
 
 
@@ -118,10 +118,10 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
     url = user_data.get('url')
 
     if not url:
-        await callback.message.answer("Error: You need to provide a valid YouTube URL first.")
+        await callback.message.answer("Ошибка: Нужна правильная ссылка")
         return
 
-    con_answer = await callback.message.answer(f"Downloading video in {quality}, please wait...⏳")
+    con_answer = await callback.message.answer(f"Загружаем видео в {quality}, пожалуйста подождите...⏳")
     await state.update_data(con_answer_id=con_answer.message_id)
     reply_message_id = user_data.get('reply_message_id')
 
@@ -129,7 +129,7 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
         try:
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
         except Exception as e:
-            print(f"Error deleting message: {e}")
+            print(f"Ошибка удаления сообщения: {e}")
     video_file_path = None
     try:
         video_file_path = await download_youtube_video(url, quality)
@@ -149,22 +149,22 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
                     message_id=con_answer_id
                 )
         else:
-            await callback.message.answer("Error: Failed to download video.")
+            await callback.message.answer("Не удалось загрузить видео!")
             os.remove(video_file_path)
     except Exception as e:
-        await callback.message.answer(f"Error: Failed to download video! {str(e)}")
+        await callback.message.answer(f"Не удалось загрузить видео! {str(e)}")
         os.remove(video_file_path)
 
 
 @router.message(F.text.startswith("https://open.spotify.com/track/"))
 async def spotify_downloader(message: Message):
     url = message.text
-    con_answer = await message.answer(text="Downloading track from Spotify, please wait...⏳")
+    con_answer = await message.answer(text="Загружаем музыку из Spotify...⏳")
 
     try:
         audio_file_path = await download_spotify_track(url)
         if not os.path.exists(audio_file_path):
-            raise Exception(f"File {audio_file_path} does not exist.")
+            raise Exception(f"Файл {audio_file_path} отсутствует")
         audio_file = FSInputFile(audio_file_path)
         await message.answer_audio(audio_file)
         os.remove(audio_file_path)
@@ -180,7 +180,7 @@ async def return_to_back(callback: CallbackQuery, state: FSMContext):
     await state.set_state(UserStates.waiting_for_format)
 
     await callback.message.edit_text(
-        text='Select the format you want to convert the video to.',
+        text='Выберите формат конвертации:',
         reply_markup=await choice_button()
     )
 
