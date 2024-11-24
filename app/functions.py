@@ -22,7 +22,7 @@ def download_youtube_audio_sync(url):
         }],
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
-        'cookiefile': 'C:/tgprojects/ytconverter/www.youtube.com_cookies.txt',
+        'cookiefile': 'www.youtube.com_cookies.txt',
     }
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
@@ -36,7 +36,7 @@ def download_youtube_video_sync(url, quality) -> str:
         'merge_output_format': 'mp4',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
-        'cookiefile': 'C:/tgprojects/ytconverter/www.youtube.com_cookies.txt',
+        'cookiefile': 'www.youtube.com_cookies.txt',
     }
     with YoutubeDL(ydl_opts) as ydl:
         try:
@@ -65,7 +65,7 @@ def clean_youtube_url(url: str) -> str:
 
 async def get_available_qualities(url):
     ydl_opts = {'quiet': True,
-                'cookiefile': 'C:/tgprojects/ytconverter/www.youtube.com_cookies.txt'}
+                'cookiefile': 'www.youtube.com_cookies.txt'}
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=False)
         formats = info_dict.get('formats', [])
