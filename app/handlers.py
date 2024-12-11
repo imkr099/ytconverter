@@ -85,10 +85,6 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
     try:
         ydl_opts = {
             'quiet': True,
-            'cookiefile': 'www.youtube.com_cookies.txt',
-            'noplaylist': True,
-            'geo-bypass': True,
-            'format': 'bestaudio/best',  # Убедитесь, что выбран доступный формат
         }
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
@@ -97,10 +93,6 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
         if video_duration is None:
             raise ValueError("Не удалось получить длительность видео.")
 
-        if video_duration > 360:  # 6 минут
-            await callback.message.answer("⚠️ Видео слишком длинное! Максимальная допустимая длительность — 6 минут.")
-            await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
-            return
     except Exception as e:
         await callback.message.answer(f"Ошибка при проверке длительности видео: {str(e)}")
         return
