@@ -13,6 +13,7 @@ from app.database import requests as rq
 from app.functions import (clean_youtube_url, get_available_qualities, download_youtube_audio,
                            download_youtube_video, download_spotify_track)
 from app.keyboards import choice_button, create_quality_buttons
+from yt_dlp import YoutubeDL
 
 
 router = Router()
@@ -81,6 +82,25 @@ async def process_format_callback(callback: CallbackQuery, state: FSMContext):
 
 
 async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url: str):
+    try:
+        # Проверяем длительность видео
+        ydl_opts = {'quiet': True}
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            video_duration = info_dict.get('duration')  # Длительность видео в секундах
+
+        if video_duration is None:
+            raise ValueError("Не удалось получить длительность видео.")
+
+        if video_duration > 360:  # 6 минут
+            await callback.message.answer("⚠️ Видео слишком длинное! Максимальная допустимая длительность — 6 минут.")
+            await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
+            return
+    except Exception as e:
+        await callback.message.answer(f"Ошибка при проверке длительности видео: {str(e)}")
+        return
+
+    # Продолжаем конвертацию, если длительность в пределах допустимого
     con_answer = await callback.message.answer(text="Конвертируем в MP3, пожалуйста подождите...⏳")
     await state.update_data(con_answer_id=con_answer.message_id)
     user_data = await state.get_data()
@@ -91,6 +111,7 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
         except Exception as e:
             print(f"Error deleting message: {e}")
+
     audio_file_path = None
     try:
         audio_file_path = await download_youtube_audio(url)
@@ -106,7 +127,8 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
             )
     except Exception as e:
         await callback.message.answer(f"Ошибка: Не удалось конвертировать аудио! {str(e)}")
-        os.remove(audio_file_path)
+        if audio_file_path:
+            os.remove(audio_file_path)
 
 
 @router.callback_query(F.data.regexp(r'\d+p'))
@@ -121,6 +143,24 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer("Ошибка: Нужна правильная ссылка")
         return
 
+    try:
+        # Используем yt_dlp для получения информации о видео
+        ydl_opts = {'quiet': True}
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            video_duration = info_dict.get('duration')  # Длительность видео в секундах
+
+        if video_duration is None:
+            raise ValueError("Не удалось получить длительность видео.")
+
+        if video_duration > 360:  # 6 минут
+            await callback.message.answer("⚠️ Видео слишком длинное! Максимальная допустимая длительность — 6 минут.")
+            await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
+            return
+    except Exception as e:
+        await callback.message.answer(f"Ошибка при проверке длительности видео: {str(e)}")
+        return
+
     con_answer = await callback.message.answer(f"Загружаем видео в {quality}, пожалуйста подождите...⏳")
     await state.update_data(con_answer_id=con_answer.message_id)
     reply_message_id = user_data.get('reply_message_id')
@@ -130,6 +170,7 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
         except Exception as e:
             print(f"Ошибка удаления сообщения: {e}")
+
     video_file_path = None
     try:
         video_file_path = await download_youtube_video(url, quality)
@@ -153,7 +194,8 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
             os.remove(video_file_path)
     except Exception as e:
         await callback.message.answer(f"Не удалось загрузить видео! {str(e)}")
-        os.remove(video_file_path)
+        if video_file_path:
+            os.remove(video_file_path)
 
 
 @router.message(F.text.startswith("https://open.spotify.com/track/"))
