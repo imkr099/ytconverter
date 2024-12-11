@@ -83,8 +83,10 @@ async def process_format_callback(callback: CallbackQuery, state: FSMContext):
 
 async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url: str):
     try:
-        # Проверяем длительность видео
-        ydl_opts = {'quiet': True}
+        ydl_opts = {
+            'quiet': True,
+            'cookiefile': 'www.youtube.com_cookies.txt',  # Указываем путь к cookies
+        }
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
             video_duration = info_dict.get('duration')  # Длительность видео в секундах
@@ -144,8 +146,10 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
         return
 
     try:
-        # Используем yt_dlp для получения информации о видео
-        ydl_opts = {'quiet': True}
+        ydl_opts = {
+            'quiet': True,
+            'cookiefile': 'www.youtube.com_cookies.txt',
+        }
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
             video_duration = info_dict.get('duration')  # Длительность видео в секундах
@@ -161,6 +165,7 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(f"Ошибка при проверке длительности видео: {str(e)}")
         return
 
+    # Продолжайте обработку видео, если все в порядке
     con_answer = await callback.message.answer(f"Загружаем видео в {quality}, пожалуйста подождите...⏳")
     await state.update_data(con_answer_id=con_answer.message_id)
     reply_message_id = user_data.get('reply_message_id')
