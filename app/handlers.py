@@ -85,17 +85,52 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
     try:
         ydl_opts = {
             'quiet': True,
+            'cookiefile': 'www.youtube.com_cookies.txt',  # Указываем путь к cookies
         }
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
-            video_duration = info_dict.get('duration')
+            video_duration = info_dict.get('duration')  # Длительность видео в секундах
 
         if video_duration is None:
             raise ValueError("Не удалось получить длительность видео.")
 
+        if video_duration > 360:  # 6 минут
+            await callback.message.answer("⚠️ Видео слишком длинное! Максимальная допустимая длительность — 6 минут.")
+            await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
+            return
     except Exception as e:
         await callback.message.answer(f"Ошибка при проверке длительности видео: {str(e)}")
         return
+
+    # Продолжаем конвертацию, если длительность в пределах допустимого
+    con_answer = await callback.message.answer(text="Конвертируем в MP3, пожалуйста подождите...⏳")
+    await state.update_data(con_answer_id=con_answer.message_id)
+    user_data = await state.get_data()
+    reply_message_id = user_data.get('reply_message_id')
+
+    if reply_message_id:
+        try:
+            await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
+        except Exception as e:
+            print(f"Error deleting message: {e}")
+
+    audio_file_path = None
+    try:
+        audio_file_path = await download_youtube_audio(url)
+        audio_file = FSInputFile(audio_file_path)
+        await callback.message.answer_audio(audio_file)
+        os.remove(audio_file_path)
+        con_answer_id = (await state.get_data()).get('con_answer_id')
+        if con_answer_id:
+            await callback.bot.edit_message_text(
+                text="✅",
+                chat_id=callback.message.chat.id,
+                message_id=con_answer_id
+            )
+    except Exception as e:
+        await callback.message.answer(f"Ошибка: Не удалось конвертировать аудио! {str(e)}")
+        if audio_file_path:
+            os.remove(audio_file_path)
 
 
 @router.callback_query(F.data.regexp(r'\d+p'))
