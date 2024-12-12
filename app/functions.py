@@ -24,14 +24,10 @@ def download_youtube_audio_sync(url):
         'quiet': True,
         'cookiefile': 'www.youtube.com_cookies.txt',
     }
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            audio_file = ydl.prepare_filename(info_dict)
-            return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
-    except Exception as e:
-        print(f"Error downloading audio: {e}")
-        return None
+    with YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(url, download=True)
+        audio_file = ydl.prepare_filename(info_dict)
+        return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
 
 
 def download_youtube_video_sync(url, quality) -> str:
@@ -39,9 +35,8 @@ def download_youtube_video_sync(url, quality) -> str:
         'format': f'bestvideo[height<={quality[:-1]}]+bestaudio/best',
         'merge_output_format': 'mp4',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'quiet': False,
+        'quiet': True,
         'cookiefile': 'www.youtube.com_cookies.txt',
-        'listformats': True,
     }
     with YoutubeDL(ydl_opts) as ydl:
         try:
@@ -69,9 +64,8 @@ def clean_youtube_url(url: str) -> str:
 
 
 async def get_available_qualities(url):
-    ydl_opts = {'quiet': False,
-                'cookiefile': 'www.youtube.com_cookies.txt',
-                'listformats': True,}
+    ydl_opts = {'quiet': True,
+                'cookiefile': 'www.youtube.com_cookies.txt'}
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=False)
         formats = info_dict.get('formats', [])
