@@ -72,7 +72,7 @@ def clean_youtube_url(url: str) -> str:
     match = re.match(r'(https://www\.youtube\.com/watch\?v=[\w-]+)', url)
     if match:
         return match.group(1)
-    return url
+    return None
 
 
 def download_spotify_track_sync(url: str) -> str:

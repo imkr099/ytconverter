@@ -102,44 +102,32 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
             os.remove(audio_file_path)
 
 
-@router.callback_query(F.data.regexp(r'\d+p'))
-async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
-    quality = callback.data
+@router.callback_query(F.data.in_(['mp4', 'mp3']))
+async def process_format_callback(callback: CallbackQuery, state: FSMContext):
+    format_type = callback.data
     await callback.answer()
+    await state.update_data(format_type=format_type)
 
     user_data = await state.get_data()
     url = user_data.get('url')
 
     if not url:
-        await callback.message.answer("Ошибка: Нужна правильная ссылка")
+        await callback.message.answer("Ошибка: Ссылка на видео не найдена. Попробуйте снова.")
         return
 
-    con_answer = await callback.message.answer(f"Загружаем видео в {quality}, пожалуйста подождите...⏳")
-    await state.update_data(con_answer_id=con_answer.message_id)
-    video_file_path = None
-    try:
-        video_file_path = await download_youtube_video(url, quality)
-        if video_file_path:
-            video_file = FSInputFile(video_file_path)
-            file_size = os.path.getsize(video_file_path)
-            if file_size <= 44 * 1024 * 1024:  # 44 MB
-                await callback.message.answer_video(video_file)
-            else:
-                await callback.message.answer_document(video_file)
-            os.remove(video_file_path)
-            con_answer_id = (await state.get_data()).get('con_answer_id')
-            if con_answer_id:
-                await callback.bot.edit_message_text(
-                    text="✅ Видео загружено!",
-                    chat_id=callback.message.chat.id,
-                    message_id=con_answer_id
-                )
-        else:
-            await callback.message.answer("Не удалось загрузить видео!")
-    except Exception as e:
-        await callback.message.answer(f"Ошибка: {str(e)}")
-        if video_file_path and os.path.exists(video_file_path):
-            os.remove(video_file_path)
+    if format_type == 'mp4':
+        qualities = await get_available_qualities(url)
+        if not qualities:
+            await callback.message.answer("Ошибка: Не удалось получить доступные качества видео.")
+            return
+
+        quality_buttons = await create_quality_buttons(qualities)
+        await state.set_state(UserStates.waiting_for_quality)
+        await callback.message.edit_text("Выберите качество видео:", reply_markup=quality_buttons)
+
+    elif format_type == 'mp3':
+        await convert_and_send_audio(callback, state, url)
+
 
 
 @router.message(F.text.startswith("https://open.spotify.com/track/"))
