@@ -84,8 +84,9 @@ async def process_format_callback(callback: CallbackQuery, state: FSMContext):
 async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url: str):
     try:
         ydl_opts = {
-            'quiet': True,
+            'quiet': False,
             'cookiefile': 'www.youtube.com_cookies.txt',  # Указываем путь к cookies
+            'listformats': True,
         }
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
@@ -147,8 +148,9 @@ async def process_quality_callback(callback: CallbackQuery, state: FSMContext):
 
     try:
         ydl_opts = {
-            'quiet': True,
+            'quiet': False,
             'cookiefile': 'www.youtube.com_cookies.txt',
+            'listformats': True,
         }
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
