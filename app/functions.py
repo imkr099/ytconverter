@@ -23,7 +23,7 @@ def download_youtube_audio_sync(url):
         }],
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
-        'cookies': 'www.youtube.com_cookies.txt',
+        'cookies': 'youtube.com_cookies',
         'noprogress': True
     }
     with YoutubeDL(ydl_opts) as ydl:
@@ -38,7 +38,7 @@ def download_youtube_video_sync(url, quality) -> str:
         'merge_output_format': 'mp4',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'quiet': True,
-        'cookies': 'www.youtube.com_cookies.txt',
+        'cookies': 'youtube.com_cookies',
         'noprogress': True
     }
     with YoutubeDL(ydl_opts) as ydl:
@@ -60,7 +60,7 @@ async def download_youtube_video(url, quality):
 
 
 async def get_available_qualities(url):
-    ydl_opts = {'quiet': True, 'cookies': 'www.youtube.com_cookies.txt', 'noprogress': True}
+    ydl_opts = {'quiet': True, 'cookies': 'youtube.com_cookies', 'noprogress': True}
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=False)
         formats = info_dict.get('formats', [])
