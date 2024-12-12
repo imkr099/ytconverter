@@ -117,20 +117,24 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
 
     audio_file_path = None
     try:
+        # Загрузка аудио
         audio_file_path = await download_youtube_audio(url)
+
+        # Проверка, существует ли файл
+        if not audio_file_path or not os.path.exists(audio_file_path):
+            raise FileNotFoundError(f"Audio file not found: {audio_file_path}")
+
+        # Отправка аудио пользователю
         audio_file = FSInputFile(audio_file_path)
         await callback.message.answer_audio(audio_file)
-        os.remove(audio_file_path)
-        con_answer_id = (await state.get_data()).get('con_answer_id')
-        if con_answer_id:
-            await callback.bot.edit_message_text(
-                text="✅",
-                chat_id=callback.message.chat.id,
-                message_id=con_answer_id
-            )
+
+    except FileNotFoundError as e:
+        await callback.message.answer(f"Ошибка: {e}")
     except Exception as e:
-        await callback.message.answer(f"Ошибка: Не удалось конвертировать аудио! {str(e)}")
-        if audio_file_path:
+        await callback.message.answer(f"Произошла ошибка: {e}")
+    finally:
+        # Удаление файла после отправки
+        if audio_file_path and os.path.exists(audio_file_path):
             os.remove(audio_file_path)
 
 

@@ -21,14 +21,17 @@ def download_youtube_audio_sync(url):
             'preferredquality': '192',
         }],
         'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'quiet': False,
+        'quiet': True,
         'cookiefile': 'www.youtube.com_cookies.txt',
-        'listformats': True,
     }
-    with YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        audio_file = ydl.prepare_filename(info_dict)
-        return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            audio_file = ydl.prepare_filename(info_dict)
+            return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
+    except Exception as e:
+        print(f"Error downloading audio: {e}")
+        return None
 
 
 def download_youtube_video_sync(url, quality) -> str:
