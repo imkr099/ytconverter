@@ -27,7 +27,19 @@ def download_youtube_audio_sync(url):
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
         audio_file = ydl.prepare_filename(info_dict)
-        return audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
+
+        # Проверка на None
+        if not audio_file:
+            raise FileNotFoundError("Не удалось получить имя файла для скачанного аудио.")
+
+        # Преобразование пути
+        audio_file = audio_file.replace('.webm', '.mp3').replace('.m4a', '.mp3')
+
+        # Проверка, существует ли файл
+        if not os.path.exists(audio_file):
+            raise FileNotFoundError(f"Файл {audio_file} не существует.")
+
+        return audio_file
 
 
 def download_youtube_video_sync(url, quality) -> str:

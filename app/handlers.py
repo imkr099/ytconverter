@@ -91,22 +91,34 @@ async def convert_and_send_audio(callback: CallbackQuery, state: FSMContext, url
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=reply_message_id)
         except Exception as e:
             print(f"Error deleting message: {e}")
+
     audio_file_path = None
     try:
+        # Загрузка аудио
         audio_file_path = await download_youtube_audio(url)
+
+        # Проверка, существует ли файл
+        if not audio_file_path or not os.path.exists(audio_file_path):
+            raise FileNotFoundError(f"Audio file not created or does not exist: {audio_file_path}")
+
+        # Отправка аудио
         audio_file = FSInputFile(audio_file_path)
         await callback.message.answer_audio(audio_file)
-        os.remove(audio_file_path)
+
+        # Обновление сообщения о завершении
         con_answer_id = (await state.get_data()).get('con_answer_id')
         if con_answer_id:
             await callback.bot.edit_message_text(
-                text="✅",
+                text="✅ Конвертация завершена!",
                 chat_id=callback.message.chat.id,
                 message_id=con_answer_id
             )
     except Exception as e:
         await callback.message.answer(f"Ошибка: Не удалось конвертировать аудио! {str(e)}")
-        os.remove(audio_file_path)
+    finally:
+        # Удаление файла, если он существует
+        if audio_file_path and os.path.exists(audio_file_path):
+            os.remove(audio_file_path)
 
 
 @router.callback_query(F.data.regexp(r'\d+p'))
